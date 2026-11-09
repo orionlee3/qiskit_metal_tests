@@ -9,13 +9,15 @@
                           [JJ]                  SQUID below the bottom bar
                          --T--                  flux line T, pin points south
 
-The two slots open to the left and right so a neighbouring qubit's arm can
-slide in between the bars. All of the coupler's metal then sits around the
-arm tips it is meant to couple to, rather than spending half its area on
-north/south arms that only couple to the readout and the ground plane.
+The two slots open to the left and right so a neighbouring qubit's arm tip
+(with its own etched pocket) can sit between the bars. All of the coupler's
+metal then sits around the arm tips it is meant to couple to, rather than
+spending half its area on north/south arms that only couple to the readout
+and the ground plane.
 
-The pocket etched around the coupler is a plain rectangle (not a buffer of
-the metal) so the slot interiors are fully etched.
+The pocket etched around the coupler follows the metal outline (a square-
+cornered buffer of pocket_gap), so the slot interiors stay ground plane. That
+leaves a strip of ground between the coupler and each qubit's pocket.
 
 The flux line is the same symmetric T as on ``TransmonCrossFL``, so routes
 can attach to the ``flux_line`` pin in exactly the same way.
@@ -31,7 +33,7 @@ class TransmonHCoupler(QComponent):
     Default Options:
         * bar_length  - length of the top and bottom bars (sets slot reach)
         * bar_width   - thickness of each bar
-        * slot_height - opening between the two bars (qubit arm + clearance)
+        * slot_height - opening between the two bars (qubit pocket + ground + gap)
         * web_width   - width of the vertical web joining the bars
         * pocket_gap  - etch between the coupler metal and the ground plane
         * jj_width    - drawn width of the junction / SQUID sheet
@@ -40,11 +42,11 @@ class TransmonHCoupler(QComponent):
     """
 
     default_options = Dict(
-        bar_length="370um",
-        bar_width="30um",
-        slot_height="70um",
-        web_width="210um",
-        pocket_gap="30um",
+        bar_length="210um",
+        bar_width="15um",
+        slot_height="140um",
+        web_width="80um",
+        pocket_gap="15um",
         jj_width="20um",
         make_fl=True,
         fl_options=Dict(
@@ -78,9 +80,8 @@ class TransmonHCoupler(QComponent):
         return p.slot_height / 2 + p.bar_width
 
     def make_pocket(self):
-        """Draw the I-beam island, its rectangular etch and the junction."""
+        """Draw the I-beam island, its conformal etch and the junction."""
         p = self.p
-        half_len = p.bar_length / 2
         y_in = p.slot_height / 2
         y_out = self._outer_half_height()
 
@@ -89,9 +90,8 @@ class TransmonHCoupler(QComponent):
         web = draw.rectangle(p.web_width, p.slot_height, 0, 0)
         island = draw.union([top_bar, bottom_bar, web])
 
-        pocket = draw.rectangle(
-            2 * (half_len + p.pocket_gap), 2 * (y_out + p.pocket_gap), 0, 0
-        )
+        # join_style=2 (mitre) keeps the etch corners square
+        pocket = island.buffer(p.pocket_gap, join_style=2)
 
         # SQUID bridges the gap from the bottom bar down to ground
         jj = draw.LineString([(0, -y_out), (0, -y_out - p.pocket_gap)])
