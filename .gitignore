@@ -1,0 +1,10 @@
+# AEDT project files 
+*.aedt 
+*.aedt.lock 
+*.aedt.auto
+
+# results and temp folders 
+*.aedtresults/ 
+*.aedb/ 
+*asol 
+*.pyaedt/
