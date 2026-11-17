@@ -2,6 +2,8 @@
 *.aedt 
 *.aedt.lock 
 *.aedt.auto
+*.csv 
+*.pyc 
 
 # results and temp folders 
 *.aedtresults/ 
