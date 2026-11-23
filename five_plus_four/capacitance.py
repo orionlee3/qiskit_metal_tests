@@ -27,8 +27,8 @@ from shapely.ops import unary_union
 EPS0_F_PER_UM = 8.854e-18
 
 
-def metal_raster(design, window_mm, pixel_um):
-    """Boolean metal map of the window (x0, x1, y0, y1) in mm, pixel centres."""
+def metal_geometry(design, window_mm):
+    """Shapely geometry of the metal in the window (x0, x1, y0, y1), in mm."""
     x0, x1, y0, y1 = window_mm
     etch, metal = [], []
     for table_name, table in design.qgeometry.tables.items():
@@ -40,9 +40,15 @@ def metal_raster(design, window_mm, pixel_um):
                 geom = geom.buffer(row.width / 2, cap_style=2, join_style=2)
             (etch if bool(row["subtract"]) else metal).append(geom)
     win = box(x0, y0, x1, y1)
-    all_metal = unary_union(
+    return unary_union(
         [win.difference(unary_union(etch)), unary_union(metal).intersection(win)]
     )
+
+
+def metal_raster(design, window_mm, pixel_um):
+    """Boolean metal map of the window (x0, x1, y0, y1) in mm, pixel centres."""
+    x0, x1, y0, y1 = window_mm
+    all_metal = metal_geometry(design, window_mm)
     step = pixel_um / 1e3
     xs = np.arange(x0 + step / 2, x1, step)
     ys = np.arange(y0 + step / 2, y1, step)
