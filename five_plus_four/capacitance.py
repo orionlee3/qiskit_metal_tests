@@ -27,11 +27,8 @@ from shapely.ops import unary_union
 EPS0_F_PER_UM = 8.854e-18
 
 
-def metal_geometry(design, window_mm, bias_um=0):
-    """Shapely geometry of the metal in the window (x0, x1, y0, y1), in mm.
-
-    bias_um > 0 etches every metal edge back by that much, as on the wafer.
-    """
+def metal_geometry(design, window_mm):
+    """Shapely geometry of the metal in the window (x0, x1, y0, y1), in mm."""
     x0, x1, y0, y1 = window_mm
     etch, metal = [], []
     for table_name, table in design.qgeometry.tables.items():
@@ -43,16 +40,15 @@ def metal_geometry(design, window_mm, bias_um=0):
                 geom = geom.buffer(row.width / 2, cap_style=2, join_style=2)
             (etch if bool(row["subtract"]) else metal).append(geom)
     win = box(x0, y0, x1, y1)
-    all_metal = unary_union(
+    return unary_union(
         [win.difference(unary_union(etch)), unary_union(metal).intersection(win)]
     )
-    return all_metal.buffer(-bias_um / 1e3, join_style=2) if bias_um else all_metal
 
 
-def metal_raster(design, window_mm, pixel_um, bias_um=0):
+def metal_raster(design, window_mm, pixel_um):
     """Boolean metal map of the window (x0, x1, y0, y1) in mm, pixel centres."""
     x0, x1, y0, y1 = window_mm
-    all_metal = metal_geometry(design, window_mm, bias_um)
+    all_metal = metal_geometry(design, window_mm)
     step = pixel_um / 1e3
     xs = np.arange(x0 + step / 2, x1, step)
     ys = np.arange(y0 + step / 2, y1, step)
@@ -60,7 +56,7 @@ def metal_raster(design, window_mm, pixel_um, bias_um=0):
     return shapely.contains_xy(all_metal, *np.meshgrid(xs, ys)), xs, ys
 
 
-def capacitance_rows(design, window_mm, probes_mm, pixel_um=1.5, eps_r=11.45, bias_um=0):
+def capacitance_rows(design, window_mm, probes_mm, pixel_um=1.5, eps_r=11.45):
     """Maxwell capacitance rows (fF) for the conductors under each probe point.
 
     Args:
@@ -69,13 +65,11 @@ def capacitance_rows(design, window_mm, probes_mm, pixel_um=1.5, eps_r=11.45, bi
         probes_mm: {name: (x, y)}, a point inside each conductor of interest
         pixel_um: grid size; keep it under half the narrowest gap or strip
         eps_r: substrate relative permittivity
-        bias_um: etch every metal edge back by this much (see metal_geometry);
-            resolved exactly only if it is a whole number of pixels
 
     Returns:
         {name: {other_name: C (fF)}}; rows[name][name] is C_sigma
     """
-    mask, xs, ys = metal_raster(design, window_mm, pixel_um, bias_um)
+    mask, xs, ys = metal_raster(design, window_mm, pixel_um)
     labels, _ = ndimage.label(mask)
     ids = {}
     for name, (x, y) in probes_mm.items():
