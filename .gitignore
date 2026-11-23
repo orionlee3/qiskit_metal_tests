@@ -3,7 +3,8 @@
 *.aedt.lock 
 *.aedt.auto
 *.csv 
-*.pyc 
+*.pyc
+*.pdf
 
 # results and temp folders 
 *.aedtresults/ 
